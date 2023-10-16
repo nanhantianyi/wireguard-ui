@@ -103,10 +103,11 @@ func (o *JsonDB) Init() error {
 		globalSetting.PersistentKeepalive = util.LookupEnvOrInt(util.PersistentKeepaliveEnvVar, util.DefaultPersistentKeepalive)
 		globalSetting.FirewallMark = util.LookupEnvOrString(util.FirewallMarkEnvVar, util.DefaultFirewallMark)
 		globalSetting.ConfigFilePath = util.LookupEnvOrString(util.ConfigFilePathEnvVar, util.DefaultConfigFilePath)
+		globalSetting.InterfaceName = util.LookupEnvOrString(util.InterfaceNameEnvVar, util.DefaultInterfaceName)
 		globalSetting.UpdatedAt = time.Now().UTC()
 		o.conn.Write("server", "global_settings", globalSetting)
 	}
-	
+
 	// hashes
 	if _, err := os.Stat(hashesPath); os.IsNotExist(err) {
 		clientServerHashes := new(model.ClientServerHashes)

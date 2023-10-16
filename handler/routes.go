@@ -780,6 +780,9 @@ func Status(db store.IStore) echo.HandlerFunc {
 		Peers []PeerVM
 	}
 	return func(c echo.Context) error {
+		settings, _ := db.GetGlobalSettings()
+
+		interfaceName := settings.InterfaceName
 
 		wgClient, err := wgctrl.New()
 		if err != nil {
@@ -790,6 +793,13 @@ func Status(db store.IStore) echo.HandlerFunc {
 			})
 		}
 
+		device, err := wgClient.Device(interfaceName)
+
+		devices := make([]*wgtypes.Device, 1)
+
+		devices = append(devices, device)
+
+		/**
 		devices, err := wgClient.Devices()
 		if err != nil {
 			return c.Render(http.StatusInternalServerError, "status.html", map[string]interface{}{
@@ -798,6 +808,7 @@ func Status(db store.IStore) echo.HandlerFunc {
 				"devices":  nil,
 			})
 		}
+		*/
 
 		devicesVm := make([]DeviceVM, 0, len(devices))
 		if len(devices) > 0 {
@@ -997,7 +1008,6 @@ func ApplyServerConfig(db store.IStore, tmplDir fs.FS) echo.HandlerFunc {
 		return c.JSON(http.StatusOK, jsonHTTPResponse{true, "Applied server config successfully"})
 	}
 }
-
 
 // GetHashesChanges handler returns if database hashes have changed
 func GetHashesChanges(db store.IStore) echo.HandlerFunc {
