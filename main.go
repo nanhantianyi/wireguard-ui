@@ -38,7 +38,7 @@ var (
 	flagSendgridApiKey string
 	flagEmailFrom      string
 	flagEmailFromName  string = "WireGuard UI"
-	flagSessionSecret  string
+	flagSessionSecret  string = util.RandomString(32)
 	flagWgConfTemplate string
 	flagBasePath       string
 )
@@ -128,10 +128,11 @@ func main() {
 		panic(err)
 	}
 	// set app extra data
-	extraData := make(map[string]string)
+	extraData := make(map[string]interface{})
 	extraData["appVersion"] = appVersion
 	extraData["gitCommit"] = gitCommit
 	extraData["basePath"] = util.BasePath
+	extraData["loginDisabled"] = flagDisableLogin
 
 	// strip the "templates/" prefix from the embedded directory so files can be read by their direct name (e.g.
 	// "base.html" instead of "templates/base.html")

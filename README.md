@@ -39,17 +39,18 @@ docker-compose up
 | Variable                    | Description                                                                                                                                                  | Default                            |
 |-----------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------|
 | `BASE_PATH`                 | Set this variable if you run wireguard-ui under a subpath of your reverse proxy virtual host (e.g. /wireguard))                                              | N/A                                |
+| `BIND_ADDRESS`              | The addresses that can access to the web interface and the port                                                                                              | 0.0.0.0:80                        |
 | `SESSION_SECRET`            | The secret key used to encrypt the session cookies. Set this to a random value                                                                               | N/A                                |
 | `WGUI_USERNAME`             | The username for the login page. Used for db initialization only                                                                                             | `admin`                            |
 | `WGUI_PASSWORD`             | The password for the user on the login page. Will be hashed automatically. Used for db initialization only                                                   | `admin`                            |
 | `WGUI_PASSWORD_HASH`        | The password hash for the user on the login page. (alternative to `WGUI_PASSWORD`). Used for db initialization only                                          | N/A                                |
 | `WGUI_ENDPOINT_ADDRESS`     | The default endpoint address used in global settings where clients should connect to                                                                         | Resolved to your public ip address |
 | `WGUI_FAVICON_FILE_PATH`    | The file path used as website favicon                                                                                                                        | Embedded WireGuard logo            |
-| `WGUI_ENDPOINT_ADDRESS`     | The default endpoint address used in global settings                                                                                                         | Resolved to your public ip address |
 | `WGUI_DNS`                  | The default DNS servers (comma-separated-list) used in the global settings                                                                                   | `1.1.1.1`                          |
 | `WGUI_MTU`                  | The default MTU used in global settings                                                                                                                      | `1450`                             |
 | `WGUI_PERSISTENT_KEEPALIVE` | The default persistent keepalive for WireGuard in global settings                                                                                            | `15`                               |
 | `WGUI_FIREWALL_MARK`        | The default WireGuard firewall mark                                                                                                                          | `0xca6c`  (51820)                  |
+| `WGUI_TABLE`                | The default WireGuard table value settings                                                                                                                   | `auto`                             |
 | `WGUI_CONFIG_FILE_PATH`     | The default WireGuard config file path used in global settings                                                                                               | `/etc/wireguard/wg0.conf`          |
 | `WGUI_LOG_LEVEL`            | The default log level. Possible values: `DEBUG`, `INFO`, `WARN`, `ERROR`, `OFF`                                                                              | `INFO`                             |
 | `WG_CONF_TEMPLATE`          | The custom `wg.conf` config file template. Please refer to our [default template](https://github.com/ngoduykhanh/wireguard-ui/blob/master/templates/wg.conf) | N/A                                |
@@ -194,14 +195,19 @@ feature work.
 Go to the project root directory and run the following command:
 
 ```sh
-docker build --build-arg=COMMIT=$(git rev-parse --short HEAD) -t wireguard-ui .
+docker build --build-arg=GIT_COMMIT=$(git rev-parse --short HEAD) -t wireguard-ui .
 ```
 
 or
 
 ```sh
-docker compose build --build-arg=COMMIT=$(git rev-parse --short HEAD)
+docker compose build --build-arg=GIT_COMMIT=$(git rev-parse --short HEAD)
 ```
+
+:information_source: A container image is avaialble on [Docker Hub](https://hub.docker.com/r/ngoduykhanh/wireguard-ui) which you can pull and use 
+```
+docker pull ngoduykhanh/wireguard-ui
+````
 
 ### Build binary file
 

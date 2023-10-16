@@ -11,6 +11,7 @@ type GlobalSetting struct {
 	MTU                 int       `json:"mtu,string"`
 	PersistentKeepalive int       `json:"persistent_keepalive,string"`
 	FirewallMark        string    `json:"firewall_mark"`
+	Table               string    `json:"table"`
 	ConfigFilePath      string    `json:"config_file_path"`
 	InterfaceName       string    `json:"interface_name"`
 	UpdatedAt           time.Time `json:"updated_at"`
