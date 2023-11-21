@@ -358,9 +358,9 @@ func GetClient(db store.IStore) echo.HandlerFunc {
 
 		clientID := c.Param("id")
 		qrCodeSettings := model.QRCodeSettings{
-			Enabled:       true,
-			IncludeDNS:    true,
-			IncludeMTU:    true,
+			Enabled:    true,
+			IncludeDNS: true,
+			IncludeMTU: true,
 		}
 
 		clientData, err := db.GetClientByID(clientID, qrCodeSettings)
@@ -410,20 +410,44 @@ func NewClient(db store.IStore) echo.HandlerFunc {
 		client.ID = guid.String()
 
 		// gen Wireguard key pair
-		if client.PublicKey == "" {
-			key, err := wgtypes.GeneratePrivateKey()
-			if err != nil {
-				log.Error("Cannot generate wireguard key pair: ", err)
-				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot generate Wireguard key pair"})
+		if client.PrivateKey == "" {
+			if client.PublicKey == "" {
+				key, err := wgtypes.GeneratePrivateKey()
+				if err != nil {
+					log.Error("Cannot generate wireguard key pair: ", err)
+					return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot generate Wireguard key pair"})
+				}
+				client.PrivateKey = key.String()
+				client.PublicKey = key.PublicKey().String()
+			} else {
+				_, err := wgtypes.ParseKey(client.PublicKey)
+				if err != nil {
+					log.Error("Cannot verify wireguard public key: ", err)
+					return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot verify Wireguard public key"})
+				}
+				// check for duplicates
+				clients, err := db.GetClients(false)
+				if err != nil {
+					log.Error("Cannot get clients for duplicate check")
+					return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot get clients for duplicate check"})
+				}
+				for _, other := range clients {
+					if other.Client.PublicKey == client.PublicKey {
+						log.Error("Duplicate Public Key")
+						return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Duplicate Public Key"})
+					}
+				}
+
 			}
-			client.PrivateKey = key.String()
-			client.PublicKey = key.PublicKey().String()
 		} else {
-			_, err := wgtypes.ParseKey(client.PublicKey)
+			key, err := wgtypes.ParseKey(client.PrivateKey)
 			if err != nil {
-				log.Error("Cannot verify wireguard public key: ", err)
-				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot verify Wireguard public key"})
+				log.Error("Cannot verify wireguard private key: ", err)
+				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot verify Wireguard private key"})
 			}
+
+			publicKey := key.PublicKey().String()
+
 			// check for duplicates
 			clients, err := db.GetClients(false)
 			if err != nil {
@@ -431,12 +455,14 @@ func NewClient(db store.IStore) echo.HandlerFunc {
 				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot get clients for duplicate check"})
 			}
 			for _, other := range clients {
-				if other.Client.PublicKey == client.PublicKey {
+				if other.Client.PublicKey == publicKey {
 					log.Error("Duplicate Public Key")
 					return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Duplicate Public Key"})
 				}
 			}
 
+			client.PrivateKey = key.String()
+			client.PublicKey = publicKey
 		}
 
 		if client.PresharedKey == "" {
@@ -486,9 +512,9 @@ func EmailClient(db store.IStore, mailer emailer.Emailer, emailSubject, emailCon
 		// TODO validate email
 
 		qrCodeSettings := model.QRCodeSettings{
-			Enabled:       true,
-			IncludeDNS:    true,
-			IncludeMTU:    true,
+			Enabled:    true,
+			IncludeDNS: true,
+			IncludeMTU: true,
 		}
 		clientData, err := db.GetClientByID(payload.ID, qrCodeSettings)
 		if err != nil {
@@ -568,33 +594,60 @@ func UpdateClient(db store.IStore) echo.HandlerFunc {
 		}
 
 		// update Wireguard Client PublicKey
-		if client.PublicKey != _client.PublicKey && _client.PublicKey != "" {
-			_, err := wgtypes.ParseKey(_client.PublicKey)
-			if err != nil {
-				log.Error("Cannot verify provided Wireguard public key: ", err)
-				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot verify provided Wireguard public key"})
+		if client.PrivateKey == _client.PrivateKey {
+			if client.PublicKey != _client.PublicKey && _client.PublicKey != "" {
+				_, err := wgtypes.ParseKey(_client.PublicKey)
+				if err != nil {
+					log.Error("Cannot verify provided Wireguard public key: ", err)
+					return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot verify provided Wireguard public key"})
+				}
+				// check for duplicates
+				clients, err := db.GetClients(false)
+				if err != nil {
+					log.Error("Cannot get client list for duplicate public key check")
+					return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot get client list for duplicate public key check"})
+				}
+				for _, other := range clients {
+					if other.Client.PublicKey == _client.PublicKey {
+						log.Error("Duplicate Public Key")
+						return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Duplicate Public Key"})
+					}
+				}
+
+				// When replacing any PublicKey, discard any locally stored Wireguard Client PrivateKey
+				// Client PubKey no longer corresponds to locally stored PrivKey.
+				// QR code (needs PrivateKey) for this client is no longer possible now.
+
+				if client.PrivateKey != "" {
+					client.PrivateKey = ""
+				}
+
+				client.PublicKey = _client.PublicKey
 			}
+		} else if _client.PrivateKey != "" {
+			key, err := wgtypes.ParseKey(_client.PrivateKey)
+			if err != nil {
+				log.Error("Cannot verify wireguard private key: ", err)
+				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot verify Wireguard private key"})
+			}
+
+			publicKey := key.PublicKey().String()
+
 			// check for duplicates
 			clients, err := db.GetClients(false)
 			if err != nil {
-				log.Error("Cannot get client list for duplicate public key check")
-				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot get client list for duplicate public key check"})
+				log.Error("Cannot get clients for duplicate check")
+				return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Cannot get clients for duplicate check"})
 			}
 			for _, other := range clients {
-				if other.Client.PublicKey == _client.PublicKey {
+				if other.Client.PublicKey == publicKey {
 					log.Error("Duplicate Public Key")
 					return c.JSON(http.StatusInternalServerError, jsonHTTPResponse{false, "Duplicate Public Key"})
 				}
 			}
 
-			// When replacing any PublicKey, discard any locally stored Wireguard Client PrivateKey
-			// Client PubKey no longer corresponds to locally stored PrivKey.
-			// QR code (needs PrivateKey) for this client is no longer possible now.
-
-			if client.PrivateKey != "" {
-				client.PrivateKey = ""
-			}
-
+			client.PrivateKey = key.String()
+			client.PublicKey = publicKey
 		}
 
 		// update Wireguard Client PresharedKey
@@ -614,7 +667,6 @@ func UpdateClient(db store.IStore) echo.HandlerFunc {
 		client.AllocatedIPs = _client.AllocatedIPs
 		client.AllowedIPs = _client.AllowedIPs
 		client.ExtraAllowedIPs = _client.ExtraAllowedIPs
-		client.PublicKey = _client.PublicKey
 		client.PresharedKey = _client.PresharedKey
 		client.PostUp = _client.PostUp
 		client.PostDown = _client.PostDown
@@ -1040,7 +1092,6 @@ func ApplyServerConfig(db store.IStore, tmplDir fs.FS) echo.HandlerFunc {
 		return c.JSON(http.StatusOK, jsonHTTPResponse{true, "Applied server config successfully"})
 	}
 }
-
 
 // GetHashesChanges handler returns if database hashes have changed
 func GetHashesChanges(db store.IStore) echo.HandlerFunc {

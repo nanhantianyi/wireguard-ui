@@ -145,6 +145,12 @@ Wireguard Clients
                             </i>
                         </summary>
                         <div class="form-group" style="margin-top: 1rem">
+                            <label for="_client_private_key" class="control-label">
+                                Private Key
+                            </label>
+                            <input type="text" class="form-control" id="_client_private_key" name="_client_private_key" aria-invalid="false">
+                        </div>
+                        <div class="form-group">
                             <label for="_client_public_key" class="control-label">
                                 Public Key
                             </label>
@@ -491,6 +497,7 @@ Wireguard Clients
                         modal.find("#_use_server_dns").prop("checked", client.use_server_dns);
                         modal.find("#_enabled").prop("checked", client.enabled);
 
+                        modal.find("#_client_private_key").val(client.private_key);
                         modal.find("#_client_public_key").val(client.public_key);
                         modal.find("#_client_preshared_key").val(client.preshared_key);
                     },
@@ -570,6 +577,7 @@ Wireguard Clients
             const post_down = $("#_client_post_down").val();
             let use_server_dns = false;
             let extra_allowed_ips = [];
+            const private_key = $("#_client_private_key").val();
             const public_key = $("#_client_public_key").val();
             const preshared_key = $("#_client_preshared_key").val();
 
@@ -588,7 +596,7 @@ Wireguard Clients
             }
 
             const data = {"id": client_id, "name": name, "email": email, "allocated_ips": allocated_ips, "post_up": post_up, "post_down": post_down,
-                "allowed_ips": allowed_ips, "extra_allowed_ips": extra_allowed_ips, "use_server_dns": use_server_dns, "enabled": enabled, "public_key": public_key, "preshared_key": preshared_key};
+                "allowed_ips": allowed_ips, "extra_allowed_ips": extra_allowed_ips, "use_server_dns": use_server_dns, "enabled": enabled, "private_key": private_key, "public_key": public_key, "preshared_key": preshared_key};
 
             $.ajax({
                 cache: false,
