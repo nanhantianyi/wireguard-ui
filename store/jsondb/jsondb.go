@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"sort"
 	"time"
 
 	"github.com/sdomino/scribble"
@@ -255,6 +256,10 @@ func (o *JsonDB) GetClients(hasQRCode bool) ([]model.ClientData, error) {
 		clientData.Client = &client
 		clients = append(clients, clientData)
 	}
+
+	sort.SliceStable(clients, func(i, j int) bool {
+		return clients[i].Client.CreatedAt.Before(clients[j].Client.CreatedAt)
+	})
 
 	return clients, nil
 }
