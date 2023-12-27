@@ -243,6 +243,10 @@
                                 <input type="text" class="form-control" id="client_post_down" name="client_post_down" placeholder="Post Down Script">
                             </div>
                             <div class="form-group">
+                                <label for="client_endpoint" class="control-label">Endpoint</label>
+                                <input type="text" class="form-control" id="client_endpoint" name="client_endpoint">
+                            </div>
+                            <div class="form-group">
                                 <div class="icheck-primary d-inline">
                                     <input type="checkbox" id="use_server_dns" {{ if .client_defaults.UseServerDNS }}checked{{ end }}>
                                     <label for="use_server_dns">
@@ -429,6 +433,7 @@
             const email = $("#client_email").val();
             const allocated_ips = $("#client_allocated_ips").val().split(",");
             const allowed_ips = $("#client_allowed_ips").val().split(",");
+            const endpoint = $("#client_endpoint").val();
             let use_server_dns = false;
             let extra_allowed_ips = [];
             const post_up = $("#client_post_up").val();
@@ -453,7 +458,7 @@
             const preshared_key = $("#client_preshared_key").val();
 
             const data = {"name": name, "email": email, "allocated_ips": allocated_ips, "allowed_ips": allowed_ips,
-                "extra_allowed_ips": extra_allowed_ips, "post_up": post_up, "post_down": post_down, "use_server_dns": use_server_dns,
+                "extra_allowed_ips": extra_allowed_ips, "post_up": post_up, "post_down": post_down, "endpoint": endpoint, "use_server_dns": use_server_dns,
                 "enabled": enabled, "private_key": private_key, "public_key": public_key, "preshared_key": preshared_key};
 
             $.ajax({

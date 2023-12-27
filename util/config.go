@@ -30,13 +30,15 @@ const (
 	DefaultDNS                             = "1.1.1.1"
 	DefaultMTU                             = 1450
 	DefaultPersistentKeepalive             = 15
-	DefaultFirewallMark                    = "0xca6c"  // i.e. 51820
+	DefaultFirewallMark                    = "0xca6c" // i.e. 51820
 	DefaultTable                           = "auto"
 	DefaultConfigFilePath                  = "/etc/wireguard/wg0.conf"
 	DefaultInterfaceName                   = "wg0"
 	UsernameEnvVar                         = "WGUI_USERNAME"
 	PasswordEnvVar                         = "WGUI_PASSWORD"
+	PasswordFileEnvVar                     = "WGUI_PASSWORD_FILE"
 	PasswordHashEnvVar                     = "WGUI_PASSWORD_HASH"
+	PasswordHashFileEnvVar                 = "WGUI_PASSWORD_HASH_FILE"
 	FaviconFilePathEnvVar                  = "WGUI_FAVICON_FILE_PATH"
 	EndpointAddressEnvVar                  = "WGUI_ENDPOINT_ADDRESS"
 	DNSEnvVar                              = "WGUI_DNS"

@@ -122,6 +122,10 @@ Wireguard Clients
                         <input type="text" class="form-control" id="_client_post_down" placeholder="Post Down Script">
                     </div>
                     <div class="form-group">
+                        <label for="_client_endpoint" class="control-label">Endpoint</label>
+                        <input type="text" class="form-control" id="_client_endpoint" name="client_endpoint">
+                    </div>
+                    <div class="form-group">
                         <div class="icheck-primary d-inline">
                             <input type="checkbox" id="_use_server_dns">
                             <label for="_use_server_dns">
@@ -494,6 +498,8 @@ Wireguard Clients
                         modal.find("#_client_post_up").val(client.post_up);
                         modal.find("#_client_post_down").val(client.post_down);
 
+                        modal.find("#_client_endpoint").val(client.endpoint);
+
                         modal.find("#_use_server_dns").prop("checked", client.use_server_dns);
                         modal.find("#_enabled").prop("checked", client.enabled);
 
@@ -585,6 +591,8 @@ Wireguard Clients
                 extra_allowed_ips = $("#_client_extra_allowed_ips").val().split(",");
             }
 
+            const endpoint = $("#_client_endpoint").val();
+
             if ($("#_use_server_dns").is(':checked')){
                 use_server_dns = true;
             }
@@ -595,7 +603,7 @@ Wireguard Clients
                 enabled = true;
             }
 
-            const data = {"id": client_id, "name": name, "email": email, "allocated_ips": allocated_ips, "post_up": post_up, "post_down": post_down,
+            const data = {"id": client_id, "name": name, "email": email, "allocated_ips": allocated_ips, "post_up": post_up, "post_down": post_down, "endpoint": endpoint,
                 "allowed_ips": allowed_ips, "extra_allowed_ips": extra_allowed_ips, "use_server_dns": use_server_dns, "enabled": enabled, "private_key": private_key, "public_key": public_key, "preshared_key": preshared_key};
 
             $.ajax({
