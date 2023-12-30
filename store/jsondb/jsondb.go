@@ -7,6 +7,7 @@ import (
 	"os"
 	"path"
 	"sort"
+	"strconv"
 	"time"
 
 	"github.com/sdomino/scribble"
@@ -37,14 +38,14 @@ func New(dbPath string) (*JsonDB, error) {
 }
 
 func (o *JsonDB) Init() error {
-	var clientPath string = path.Join(o.dbPath, "clients")
-	var serverPath string = path.Join(o.dbPath, "server")
-	var userPath string = path.Join(o.dbPath, "users")
-	var wakeOnLanHostsPath string = path.Join(o.dbPath, "wake_on_lan_hosts")
-	var serverInterfacePath string = path.Join(serverPath, "interfaces.json")
-	var serverKeyPairPath string = path.Join(serverPath, "keypair.json")
-	var globalSettingPath string = path.Join(serverPath, "global_settings.json")
-	var hashesPath string = path.Join(serverPath, "hashes.json")
+	var clientPath = path.Join(o.dbPath, "clients")
+	var serverPath = path.Join(o.dbPath, "server")
+	var userPath = path.Join(o.dbPath, "users")
+	var wakeOnLanHostsPath = path.Join(o.dbPath, "wake_on_lan_hosts")
+	var serverInterfacePath = path.Join(serverPath, "interfaces.json")
+	var serverKeyPairPath = path.Join(serverPath, "keypair.json")
+	var globalSettingPath = path.Join(serverPath, "global_settings.json")
+	var hashesPath = path.Join(serverPath, "hashes.json")
 
 	// create directories if they do not exist
 	if _, err := os.Stat(clientPath); os.IsNotExist(err) {
@@ -163,6 +164,20 @@ func (o *JsonDB) Init() error {
 		}
 	}
 
+	// init cache
+	clients, err := o.GetClients(false)
+	if err != nil {
+		return nil
+	}
+	for _, cl := range clients {
+		client := cl.Client
+		if client.Enabled && len(client.TgUserid) > 0 {
+			if userid, err := strconv.ParseInt(client.TgUserid, 10, 64); err == nil {
+				util.UpdateTgToClientID(userid, client.ID)
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -176,7 +191,7 @@ func (o *JsonDB) GetUsers() ([]model.User, error) {
 	for _, i := range results {
 		user := model.User{}
 
-		if err := json.Unmarshal([]byte(i), &user); err != nil {
+		if err := json.Unmarshal(i, &user); err != nil {
 			return users, fmt.Errorf("cannot decode user json structure: %v", err)
 		}
 		users = append(users, user)
@@ -254,7 +269,7 @@ func (o *JsonDB) GetClients(hasQRCode bool) ([]model.ClientData, error) {
 		clientData := model.ClientData{}
 
 		// get client info
-		if err := json.Unmarshal([]byte(f), &client); err != nil {
+		if err := json.Unmarshal(f, &client); err != nil {
 			return clients, fmt.Errorf("cannot decode client json structure: %v", err)
 		}
 
@@ -265,7 +280,7 @@ func (o *JsonDB) GetClients(hasQRCode bool) ([]model.ClientData, error) {
 
 			png, err := qrcode.Encode(util.BuildClientConfig(client, server, globalSettings), qrcode.Medium, 256)
 			if err == nil {
-				clientData.QRCode = "data:image/png;base64," + base64.StdEncoding.EncodeToString([]byte(png))
+				clientData.QRCode = "data:image/png;base64," + base64.StdEncoding.EncodeToString(png)
 			} else {
 				fmt.Print("Cannot generate QR code: ", err)
 			}
@@ -306,7 +321,7 @@ func (o *JsonDB) GetClientByID(clientID string, qrCodeSettings model.QRCodeSetti
 
 		png, err := qrcode.Encode(util.BuildClientConfig(client, server, globalSettings), qrcode.Medium, 256)
 		if err == nil {
-			clientData.QRCode = "data:image/png;base64," + base64.StdEncoding.EncodeToString([]byte(png))
+			clientData.QRCode = "data:image/png;base64," + base64.StdEncoding.EncodeToString(png)
 		} else {
 			fmt.Print("Cannot generate QR code: ", err)
 		}
@@ -320,6 +335,17 @@ func (o *JsonDB) GetClientByID(clientID string, qrCodeSettings model.QRCodeSetti
 func (o *JsonDB) SaveClient(client model.Client) error {
 	clientPath := path.Join(path.Join(o.dbPath, "clients"), client.ID+".json")
 	output := o.conn.Write("clients", client.ID, client)
+	if output == nil {
+		if client.Enabled && len(client.TgUserid) > 0 {
+			if userid, err := strconv.ParseInt(client.TgUserid, 10, 64); err == nil {
+				util.UpdateTgToClientID(userid, client.ID)
+			}
+		} else {
+			util.RemoveTgToClientID(client.ID)
+		}
+	} else {
+		util.RemoveTgToClientID(client.ID)
+	}
 	err := util.ManagePerms(clientPath)
 	if err != nil {
 		return err
@@ -328,6 +354,7 @@ func (o *JsonDB) SaveClient(client model.Client) error {
 }
 
 func (o *JsonDB) DeleteClient(clientID string) error {
+	util.RemoveTgToClientID(clientID)
 	return o.conn.Delete("clients", clientID)
 }
 
