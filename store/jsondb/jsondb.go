@@ -156,6 +156,7 @@ func (o *JsonDB) Init() error {
 		}
 
 		o.conn.Write("users", user.Username, user)
+		results, _ = o.conn.ReadAll("users")
 		err = util.ManagePerms(path.Join(path.Join(o.dbPath, "users"), user.Username+".json"))
 		if err != nil {
 			return err
